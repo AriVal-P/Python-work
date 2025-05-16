@@ -1,0 +1,91 @@
+rm(list = ls(all.names = TRUE))
+gc()
+
+library(knitr)
+install.packages("kableExtra")
+library(kableExtra)
+library(magrittr)
+
+x <- c(79, 93, 100, 105, 85, 101, 96, 96, 109, 70, 71, 87, 75)
+y <- c(119, 142, 158, 157, 136, 151, 139, 142, 165, 117, 123, 130, 125)
+Datos6 <- data.frame(cbind(x, y))
+
+kable(t(Datos6)) %>%
+  kable_styling(bootstrap_options = "striped", full_width = F) %>%
+  kable_styling(latex_options = "HOLD_position")
+
+#### 1) Ajuste de la recta de regresión para estimar el peso promedio del huevo
+#### mayor (y) dado el peso del huevo menor (x). Comente sobre el ajuste del 
+#### modelo, es decir, si parece correcto y si se cumplen los supuestos.
+
+fit<- lm(y~x, data= Datos6)
+summary(fit)
+#encontramos que el modelo es significativo pues se indica que hay una relación
+#fuerte entre las variables.
+
+
+plot(x,y, main = "Ajuste")
+abline(fit, col = 'red')
+
+###    VERIFICACIÓN DE SUPUESTOS
+
+par(mfrow=c(2,2))
+par(mar=c(2,2,2,2))
+
+##linealidad
+plot(fit,1)
+#En la grafica la linea roja sugiere una un patrón en la distribución de los residuos
+#prueba de hipótesis para linealidad
+library(car)
+boxTidwell(y ~ x, data = Datos6)
+#no rechaza H0 pues el p-value es mayor al nivel de significancia por lo que 
+#no hay evidencia para rechazar linealidad
+#Por lo tanto no es necesario ajustar el modelo.
+
+#Normalidad
+plot(fit,2)
+#Se puede observar que lor residuos se apegan a la linea
+#prueba de hipótesis
+shapiro.test(fit$residuals)
+#no se rechaza h0 pues el p value es mayor a 0.05 por lo tanto concluimos que 
+#no hay evidencia en contra de normalidad.
+
+#Homocedasticidad
+plot(fit,3)
+#no se observa un patrón claro y la linea roja es casi horizontal
+#prueba de hipótesis
+library(lmtest)
+lmtest::bptest(fit)
+#como el p-value es mayor al nivel de significancia no se rehaza H0 por lo que 
+#no hay evidencia para rechazar homocedasticidad
+
+#Valores influyentes
+plot(fit,5)
+#nos fijamos en las esquinas del gráfico detrás de las lineas punteadas y no hay
+#outliers que sean significativos en el modelo.
+
+###Inciso 2
+#Si hubiera una relación constante entre x y y en promedio es decir:
+# E(y)-E(x)=c para toda x y y -->b1=1 o b1=0
+#Ahora, para la prueba de hipótesis queremos negar que b1=0
+#ent. H0= "b1 = 0, es decir x no predice a y" Ha= "b1 distinto de 0"
+summary(fit)
+#dentro de esta función está la prueba student que precisamente prueba la relación
+#entre las variables, al ser el p-value mucho menor a el valor de significancia 
+#implica que se rechaza h0 por lo tanto b1 es distinto de 0
+
+#Prueba H0= "b1 = 1"
+library(car)
+linearHypothesis(fit, "x=1")
+#como el p-value=0.2102 no rechazamos h0 lo que implica que no hay suficiente 
+#evidencia para decir que no hay una diferencia constante entre el peso de los huevos
+###recordando lo obtenido en el summary B1= 1.14 lo que no es lejano a 1
+
+####inciso 3
+#nueva observación: huevo mas ligero= 70gr, huevo mas pesado= 140gr
+nueva_obs <- data.frame(x=70)
+predict(fit,newdata = nueva_obs,interval = "confidence",level=0.95)
+#bajo el modelo el peso del huevo mas pesado basado en que el huevo mas ligero pesó
+#70 gramos sería 116 gramos con un nivel de confianza del 95%
+#sin embargo, el huevo mas pesado pesó 140 por lo que no es probable que los
+#huevos provengan de la especie de pingüino macaroni
